@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "swarm"
+version = "0.1.0"
+description = ""
+authors = ["reynaldo.lsp <reynaldo.lsp@avangeio.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+openai-swarm = "^0.1.1"
+python-dotenv = "^1.0.1"
+sqlmodel = "^0.0.22"
+psycopg2 = "^2.9.10"
+anthropic = "^0.39.0"
+grok = "^5.1"
+fastapi = "^0.115.5"
+uvicorn = "^0.32.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
