@@ -31,5 +31,5 @@ class ChatResponse(BaseModel):
 
 class UsuarioCreate(BaseModel):
     name: str
-    company: str
-    email: EmailStr
+    company: Optional[str]
+    email: Optional[EmailStr]

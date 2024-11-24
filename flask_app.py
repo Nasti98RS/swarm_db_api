@@ -157,8 +157,8 @@ def create_user():
         email = data.get('email')
 
         # Validar campos obligatorios
-        if not (nombre and empresa and email):
-            return jsonify({"error": "Todos los campos son obligatorios"}), 400
+        if not nombre :
+            return jsonify({"error": "El campo nombre es obligatorio"}), 400
 
         # Crear el objeto usuario
         new_user = Usuario(nombre=nombre, empresa=empresa, email=email)

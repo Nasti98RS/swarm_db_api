@@ -128,7 +128,7 @@ async def home():
         "message": "El chatbot está funcionando. Envía solicitudes POST a /chat para interactuar."
     }
 
-@app.post("/new_user", response_model=dict, status_code=201)
+@app.post("/new_user", response_model=dict, status_code=200)
 def create_user(user: UsuarioCreate):
     try:
         # Crear el objeto usuario
@@ -141,13 +141,16 @@ def create_user(user: UsuarioCreate):
             session.refresh(new_user)
 
         # Devolver respuesta
-        return {"message": "Usuario creado exitosamente", "user_id": str(new_user.id)}
+        return {"message": "Usuario creado exitosamente", "user_name": str(new_user.nombre)}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear el usuario: {str(e)}")
 
 
+
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="127.0.0.1", port=7000, reload=True)
+    uvicorn.run("fastapi_app:app", host="127.0.0.1", port=7000, reload=True)

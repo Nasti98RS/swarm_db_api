@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swarm-DB Chat</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1041/1041916.png">
-    <link rel="icon" type="image/png" href="https://www.flaticon.com/free-icon/database_1104982.png">
 
     <style>
         * {
@@ -155,9 +154,193 @@
                 border-radius: 0;
             }
         }
+        .user-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .user-button:hover {
+            background-color: #f3f4f6;
+        }
+
+        /* Estilos para el ícono de usuario */
+        .user-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Estilos para el modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilos para el formulario */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Estilos para el botón de envío */
+        .submit-button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .submit-button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .submit-button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        /* Estilos para mensajes de error */
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        /* Estilos para el título del modal */
+        .modal-title {
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        /* Estilos para la descripción del modal */
+        .modal-description {
+            margin-bottom: 1.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        /* Animación para el modal */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
     </style>
 </head>
 <body>
+
+    <button class="user-button" id="userButton">
+        <svg class="user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+    </button>
+
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Iniciar Sesión</h2>
+            <p class="modal-description">Por favor ingresa tus datos para continuar</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="name">Nombre *</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        required 
+                        placeholder="Ingresa tu nombre"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="company">Empresa</label>
+                    <input 
+                        type="text" 
+                        id="company" 
+                        name="company" 
+                        placeholder="Ingresa el nombre de tu empresa"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Correo Electrónico</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="correo@ejemplo.com"
+                    >
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+                
+                <button type="submit" class="submit-button" id="submitButton">
+                    Enviar
+                </button>
+            </form>
+        </div>
+    </div>
+
     <div class="chat-container">
         <div class="chat-header">
             <h2>SwarmDB Chat</h2>
@@ -167,7 +350,7 @@
         <div id="chat-messages" class="chat-messages">
             <div class="message bot">
                 <div class="message-content">
-                    ¡Hola! Soy tu asistente de gestión de bases de datos ¿En qué puedo ayudarte hoy?
+                    ¡Hola! Soy tu asistente de gestión de base de datos ¿En qué puedo ayudarte?
                 </div>
             </div>
         </div>
@@ -244,7 +427,7 @@
 
     } catch (error) {
         console.error('Error en envío de mensaje:', error);
-        displayMessage('Lo siento, ha ocurrido un error. Por favor, intenta de nuevo.', 'bot');
+        displayMessage('Lo siento, ha ocurrido un error.', 'bot');
     } finally {
         // Ocultar indicador de escritura y rehabilitar input
         typingIndicator.classList.remove('active');
@@ -283,5 +466,69 @@
         // Mantener el foco en el input
         messageInput.focus();
     </script>
+
+
+
+<script>
+    // Referencias a elementos del DOM
+    const userButton = document.getElementById('userButton');
+    const loginModal = document.getElementById('loginModal');
+    const loginForm = document.getElementById('loginForm');
+    const submitButton = document.getElementById('submitButton');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Abrir modal al hacer clic en el botón de usuario
+    userButton.addEventListener('click', () => {
+        loginModal.classList.add('active');
+    });
+
+    // Cerrar modal al hacer clic fuera del contenido
+    loginModal.addEventListener('click', (e) => {
+        if (e.target === loginModal) {
+            loginModal.classList.remove('active');
+        }
+    });
+
+    // Manejar envío del formulario
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enviando...';
+        errorMessage.style.display = 'none';
+
+        const formData = {
+            name: document.getElementById('name').value,
+            company: document.getElementById('company').value,
+            email: document.getElementById('email').value
+        };
+
+        try {
+            const response = await fetch('/new_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al crear usuario');
+            }
+
+            // Éxito - cerrar modal y resetear formulario
+            loginModal.classList.remove('active');
+            loginForm.reset();
+            
+        } catch (error) {
+            errorMessage.textContent = error.message;
+            errorMessage.style.display = 'block';
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Enviar';
+        }
+    });
+</script>
 </body>
 </html>
