@@ -195,63 +195,63 @@
         });
 
         async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
+    const message = messageInput.value.trim();
+    if (!message) return;
 
-            // Deshabilitar input y botón mientras se envía
-            messageInput.disabled = true;
-            sendButton.disabled = true;
+    // Deshabilitar input y botón mientras se envía
+    messageInput.disabled = true;
+    sendButton.disabled = true;
 
-            // Mostrar mensaje del usuario
-            displayMessage(message, 'user');
-            messageInput.value = '';
+    // Mostrar mensaje del usuario
+    displayMessage(message, 'user');
+    messageInput.value = '';
 
-            // Mostrar indicador de escritura
-            typingIndicator.classList.add('active');
+    // Mostrar indicador de escritura
+    typingIndicator.classList.add('active');
 
-            try {
-                const response = await fetch('https://nasti98rs.pythonanywhere.com/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    mode: 'cors',
-                    body: JSON.stringify({
-                        message: message,
-                        context: {}
-                    })
-                });
+    try {
+        const response = await fetch('https://nasti98rs.pythonanywhere.com/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            mode: 'cors',
+            body: JSON.stringify({
+                message: message,
+                context: {}
+            })
+        });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Datos de respuesta:', data);
-
-                // Validar y mostrar la respuesta
-                if (Array.isArray(data) && data.length > 0) {
-                    data.forEach(msg => {
-                        if (msg.content) {
-                            displayMessage(msg.content, 'bot');
-                        }
-                    });
-                } else {
-                    throw new Error('Formato de respuesta inválido');
-                }
-
-            } catch (error) {
-                console.error('Error en envío de mensaje:', error);
-                displayMessage('Lo siento, ha ocurrido un error. Por favor, intenta de nuevo.', 'bot');
-            } finally {
-                // Ocultar indicador de escritura y rehabilitar input
-                typingIndicator.classList.remove('active');
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-                messageInput.focus();
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        console.log('Datos de respuesta:', data);
+
+        // Validar y mostrar solo la última respuesta
+        if (Array.isArray(data) && data.length > 0) {
+            const lastMessage = data[data.length - 1];  // Obtener la última respuesta
+            if (lastMessage.content) {
+                displayMessage(lastMessage.content, 'bot');
+            }
+        } else {
+            throw new Error('Formato de respuesta inválido');
+        }
+
+    } catch (error) {
+        console.error('Error en envío de mensaje:', error);
+        displayMessage('Lo siento, ha ocurrido un error. Por favor, intenta de nuevo.', 'bot');
+    } finally {
+        // Ocultar indicador de escritura y rehabilitar input
+        typingIndicator.classList.remove('active');
+        messageInput.disabled = false;
+        sendButton.disabled = false;
+        messageInput.focus();
+    }
+}
+
 
         function displayMessage(content, sender) {
             const messageElement = document.createElement('div');
