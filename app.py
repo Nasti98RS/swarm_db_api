@@ -12,7 +12,6 @@ app = FastAPI()
 client = core.client
 starting_agent = core.triage_agent
 
-# Diccionario para mantener el agente actual por usuario
 current_agent_memory = {}
 conversation_memory = {}
 
