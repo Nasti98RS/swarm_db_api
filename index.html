@@ -76,6 +76,7 @@
             border-radius: 15px;
             background: #e9ecef;
             position: relative;
+            word-wrap: break-word;
         }
 
         .message.user .message-content {
@@ -86,6 +87,16 @@
         .message.bot .message-content {
             background: #e9ecef;
             color: #333;
+        }
+
+        .message.system .message-content {
+            background: #ffeeba;
+            color: #856404;
+        }
+
+        .message.error .message-content {
+            background: #f8d7da;
+            color: #721c24;
         }
 
         .chat-input {
@@ -123,17 +134,6 @@
             background: #0056b3;
         }
 
-        .loading {
-            display: none;
-            margin: 10px 0;
-            text-align: center;
-            color: #666;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
         .typing-indicator {
             display: none;
             padding: 12px 16px;
@@ -158,12 +158,6 @@
         @keyframes typing {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
-        }
-
-        /* Estilo para el mensaje de sistema */
-        .message.system .message-content {
-            background: #ffeeba;
-            color: #856404;
         }
     </style>
 </head>
@@ -204,6 +198,11 @@
         const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
         const userId = 'user_' + Math.random().toString(36).substr(2, 9);
 
+        // URLs de la API
+        const API_BASE_URL = 'https://nasti98rs.pythonanywhere.com';
+        const CHAT_ENDPOINT = `${API_BASE_URL}/chat`;
+        const RESET_ENDPOINT = `${API_BASE_URL}/reset-agent`;
+
         // Función para agregar mensajes al chat
         function addMessage(message, type = 'bot') {
             const messageDiv = document.createElement('div');
@@ -222,9 +221,24 @@
             typingIndicator.style.display = show ? 'block' : 'none';
         }
 
+        // Función para manejar errores de la API
+        function handleApiError(error, context) {
+            console.error(`Error en ${context}:`, error);
+            let errorMessage = 'Ha ocurrido un error. ';
+            
+            if (error.response) {
+                errorMessage += `Servidor respondió: ${error.response.status} - ${error.response.statusText}`;
+            } else if (error.request) {
+                errorMessage += 'No se pudo conectar con el servidor.';
+            } else {
+                errorMessage += error.message || 'Error desconocido';
+            }
+            
+            addMessage(errorMessage, 'error');
+        }
+
         // Función para enviar mensaje al servidor
         async function sendMessage(message) {
-            const url = 'https://nasti98rs.pythonanywhere.com/chat';
             const data = {
                 message: message,
                 context: {
@@ -235,43 +249,61 @@
             };
 
             try {
+                console.log('Enviando mensaje:', data);
                 toggleTypingIndicator(true);
-                const response = await fetch(url, {
+                
+                const response = await fetch(CHAT_ENDPOINT, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(data)
                 });
 
+                console.log('Respuesta del servidor:', response);
+
                 if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const responseData = await response.json();
+                console.log('Datos de respuesta:', responseData);
+                
                 toggleTypingIndicator(false);
-                addMessage(responseData.response, 'bot');
+                
+                if (responseData && responseData.response) {
+                    addMessage(responseData.response, 'bot');
+                } else {
+                    throw new Error('Formato de respuesta inválido');
+                }
             } catch (error) {
-                console.error('Error:', error);
+                handleApiError(error, 'envío de mensaje');
                 toggleTypingIndicator(false);
-                addMessage('Lo siento, ha ocurrido un error al procesar tu mensaje.', 'system');
             }
         }
 
         // Función para reiniciar la conversación
         async function resetConversation() {
-            const resetUrl = `https://nasti98rs.pythonanywhere.com/reset-agent/${userId}`;
-            
             try {
-                const response = await fetch(resetUrl, {
+                console.log('Intentando reiniciar conversación para usuario:', userId);
+                
+                const response = await fetch(`${RESET_ENDPOINT}/${userId}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     }
                 });
 
+                console.log('Respuesta del reset:', response);
+
                 if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Error en reset:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 // Limpiar mensajes anteriores
@@ -280,8 +312,7 @@
                 addMessage('¡Hola! La conversación ha sido reiniciada. ¿En qué puedo ayudarte?', 'bot');
                 
             } catch (error) {
-                console.error('Error al reiniciar:', error);
-                addMessage('Error al reiniciar la conversación. Por favor, intenta de nuevo.', 'system');
+                handleApiError(error, 'reinicio de conversación');
             }
         }
 
@@ -306,10 +337,9 @@
             }
         });
 
-        // Event listener para el botón de reinicio
         resetButton.addEventListener('click', resetConversation);
 
-        // Función para mantener el scroll en la parte inferior
+        // Observer para el scroll automático
         const observer = new MutationObserver(() => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         });
@@ -318,6 +348,11 @@
             childList: true,
             subtree: true
         });
+
+        // Logging inicial
+        console.log('Chat inicializado');
+        console.log('User ID:', userId);
+        console.log('Session ID:', sessionId);
     </script>
 </body>
 </html>
