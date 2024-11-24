@@ -1,10 +1,13 @@
 from typing import List
 from fastapi import FastAPI, HTTPException
+from sqlmodel import  Session
+
 
 import core
-from project.api_models import ChatResponse, ChatRequest
+from project.api_models import ChatResponse, ChatRequest,UsuarioCreate
 from project.api_utils import AgentSwitchHandler, process_tool_calls, format_message
-
+from project.models import Usuario
+from project.database import engine
 
 
 app = FastAPI()
@@ -111,6 +114,7 @@ async def reset_agent(user_id: str):
     """
     Reinicia el agente al agente de triaje inicial
     """
+    conversation_memory.pop(user_id, None)  # Usar pop con None como default es más seguro
     current_agent_memory[user_id] = starting_agent
     return {"message": "Agent reset to triage agent", "agent_name": starting_agent.name}
 
@@ -123,6 +127,24 @@ async def home():
     return {
         "message": "El chatbot está funcionando. Envía solicitudes POST a /chat para interactuar."
     }
+
+@app.post("/new_user", response_model=dict, status_code=201)
+def create_user(user: UsuarioCreate):
+    try:
+        # Crear el objeto usuario
+        new_user = Usuario(nombre=user.name, empresa=user.company, email=user.email)
+
+        # Guardar el usuario en la base de datos
+        with Session(engine) as session:
+            session.add(new_user)
+            session.commit()
+            session.refresh(new_user)
+
+        # Devolver respuesta
+        return {"message": "Usuario creado exitosamente", "user_id": str(new_user.id)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear el usuario: {str(e)}")
 
 
 if __name__ == "__main__":

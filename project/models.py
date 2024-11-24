@@ -1,8 +1,10 @@
 from sqlmodel import Field, SQLModel
+from uuid import UUID, uuid4
+
 
 
 class Producto(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: UUID = Field(default=uuid4(), primary_key=True)
     nombre: str = Field()
     precio: float = Field()
     cantidad_en_almacen: int = Field(default=0)
@@ -10,8 +12,7 @@ class Producto(SQLModel, table=True):
 
 
 class Usuario(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: UUID = Field(default=uuid4(), primary_key=True)
     nombre: str = Field()
     empresa: str = Field()
     email: str = Field()
-    esta_de_vaciones: bool = Field(default=False)

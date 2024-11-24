@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 
 
 class ToolCall(BaseModel):
@@ -28,3 +28,8 @@ class ChatResponse(BaseModel):
     content: str
     agent_switch: Optional[str] = None
     # tool_calls: Optional[List[ToolCall]] = None
+
+class UsuarioCreate(BaseModel):
+    name: str
+    company: str
+    email: EmailStr

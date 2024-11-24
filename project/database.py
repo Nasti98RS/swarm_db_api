@@ -1,6 +1,5 @@
 from sqlmodel import create_engine, Session, SQLModel
 from dotenv import load_dotenv
-import project.models
 import os
 
 load_dotenv()
@@ -16,4 +15,7 @@ def create_db_and_tables():
 
 
 if __name__ == "__main__":
+    import models
     create_db_and_tables()
+else: 
+    import project.models
