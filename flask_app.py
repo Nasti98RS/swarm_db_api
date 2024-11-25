@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
-from sqlmodel import  Session
+from sqlmodel import  Session,select
 
 
 
 import core
 from project.api_models import ChatRequest
-from project.models import Usuario
+from project.models import Usuario,Producto
 from project.database import engine
 from project.api_utils import AgentSwitchHandler, process_tool_calls, format_message
 
@@ -163,13 +163,42 @@ def create_user():
         # Crear el objeto usuario
         new_user = Usuario(nombre=nombre, empresa=empresa, email=email)
 
-        # Guardar en la base de datos
+        # Guardar el usuario en la base de datos si no existe
         with Session(engine) as session:
-            session.add(new_user)
-            session.commit()
-            session.refresh(new_user)
+            exist=session.exec(
+                select(Usuario).where(Usuario.nombre.ilike(f"%{new_user.nombre}%"))
+            ).first()
+            if exist:
+                return jsonify({"message": "El usuario ya existe", "user_id": str(exist.id),"user_name": str(exist.nombre),"user_enterprise": str(exist.empresa),"user_email": str(exist.email)},), 201
+            else:
+                session.add(new_user)
+                session.commit()
+                session.refresh(new_user)
 
-        return jsonify({"message": "Usuario creado exitosamente", "user_id": str(new_user.id)}), 201
+            return jsonify({"message": "Usuario creado exitosamente", "user_id": str(new_user.id)}), 201
 
     except Exception as e:
         return jsonify({"error": f"Error al crear el usuario: {str(e)}"}), 500
+
+@app.route('/get_data', methods=['GET'])
+def get_data():
+    try:
+        with Session(engine) as session:
+            # Seleccionamos todos los productos
+            productos = session.exec(select(Producto)).all()
+            
+            # Convertimos los objetos a un formato serializable
+            productos_serializados = [
+                {
+                    "nombre": producto.nombre,
+                    "precio": producto.precio,
+                    "cantidad_en_almacen": producto.cantidad_en_almacen,
+                    "descuento_por_devolucion": producto.descuento_por_devolucion
+                }
+                for producto in productos
+            ]
+            
+            # Devolvemos los datos en formato JSON
+            return jsonify(productos_serializados)
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener los datos: {str(e)}"}), 500

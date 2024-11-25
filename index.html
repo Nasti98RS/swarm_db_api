@@ -12,7 +12,22 @@
             padding: 0;
             box-sizing: border-box;
         }
+ /* Botón para cerrar el menú */
+ .close-button {
+        background: transparent;
+        color: white;
+        border: none;
+        font-size: 1.5rem;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+        transition: color 0.3s;
+    }
 
+    .close-button:hover {
+        color: #dcf8c6;
+    }
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f0f2f5;
@@ -154,6 +169,7 @@
                 border-radius: 0;
             }
         }
+
         .user-button {
             position: absolute;
             top: 1rem;
@@ -195,7 +211,7 @@
         .modal-content {
             position: relative;
             background-color: white;
-            margin: 10% auto;
+            margin: 9% auto;
             padding: 20px;
             width: 90%;
             max-width: 500px;
@@ -284,9 +300,127 @@
             display: block;
             animation: fadeIn 0.3s;
         }
-    </style>
+
+        /* Estilos para el botón del menú */
+        .menu-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #128c7e;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .menu-button:hover {
+            background: #0f7a6c;
+        }
+        table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        text-align: center;
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #128c7e;
+        color: white;
+    }
+
+    tbody tr:hover {
+    background-color: #e0f7f3; /* Color suave en lugar de blanco */
+    color: #000; /* Asegura que el texto sea legible */
+    cursor: pointer; /* Indica interactividad */
+}
+        /* Estilos para el menú lateral */
+        .sidebar {
+    position: fixed;
+    top: 0;
+    left: -600px; /* Cambiar para que coincida con el nuevo ancho */
+    width: 600px; /* Aumenta el ancho del sidebar */
+    height: 100%;
+    background: #075e54;
+    color: white;
+    padding: 15px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+    transition: left 0.3s;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .data-item {
+            background: #128c7e;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .data-item:hover {
+            background: #0f7a6c;
+        }
+        #loadDataButton {
+    background-color: #128c7e;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px; /* Un poco de espacio arriba */
+    width: 100%; /* O cualquier tamaño que prefieras */
+}
+
+#loadDataButton:hover {
+    background-color: #0f7a6c;
+}
+</style>
+
 </head>
 <body>
+    <!-- Botón para desplegar el menú -->
+<button class="menu-button" id="menuButton"><h3>☰ Base de datos ☰</h3></button>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <button class="close-button" id="closeButton">✖</button>
+    <h2>Datos de Productos</h2>
+    
+    <!-- Botón para cargar los productos -->
+    <button id="loadDataButton"><h3>Cargar Datos</h3></button>
+<br></br>
+    <table id="productosTable">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Cantidad en Almacén</th>
+                <th>Descuento por Devolución</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Filas de productos generadas dinámicamente -->
+        </tbody>
+    </table>
+</div>
+
+
 
     <button class="user-button" id="userButton">
         <svg class="user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -530,5 +664,69 @@
         }
     });
 </script>
+
+<script>
+    const menuButton = document.getElementById('menuButton');
+    const sidebar = document.getElementById('sidebar');
+    const dataContainer = document.getElementById('dataContainer');
+
+    // Función para alternar el menú
+    menuButton.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
+
+    // Función para cargar datos ficticios
+    
+</script>
+<script>
+    const closeButton = document.getElementById('closeButton');
+
+    // Función para cerrar el menú
+    closeButton.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+    });
+
+    
+
+const tableBody = document.querySelector("#productosTable tbody");
+const loadDataButton = document.getElementById('loadDataButton');
+
+// Función para cargar los productos desde el backend
+async function cargarProductos() {
+    try {
+        // Realizamos la solicitud al endpoint Flask
+        const response = await fetch('https://nasti98rs.pythonanywhere.com/get_data');  // Cambia la URL si es necesario
+        if (!response.ok) {
+            throw new Error("Error al obtener los datos");
+        }
+        
+        // Convertimos la respuesta JSON en un array de productos
+        const productos = await response.json();
+        
+        // Limpiamos el contenido anterior de la tabla
+        tableBody.innerHTML = '';
+
+        // Añadimos los productos a la tabla
+        productos.forEach(producto => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${producto.nombre}</td>
+                <td>${producto.precio.toFixed(2)} $</td>
+                <td>${producto.cantidad_en_almacen}</td>
+                <td>${producto.descuento_por_devolucion}%</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error al cargar los productos:", error);
+    }
+}
+
+// Asignamos la función al botón de cargar datos
+loadDataButton.addEventListener('click', cargarProductos);
+
+
+</script>
+
 </body>
 </html>

@@ -1,12 +1,12 @@
 from typing import List
 from fastapi import FastAPI, HTTPException
-from sqlmodel import  Session
+from sqlmodel import  Session,select
 
 
 import core
 from project.api_models import ChatResponse, ChatRequest,UsuarioCreate
 from project.api_utils import AgentSwitchHandler, process_tool_calls, format_message
-from project.models import Usuario
+from project.models import Usuario,Producto
 from project.database import engine
 
 
@@ -134,18 +134,48 @@ def create_user(user: UsuarioCreate):
         # Crear el objeto usuario
         new_user = Usuario(nombre=user.name, empresa=user.company, email=user.email)
 
-        # Guardar el usuario en la base de datos
+        # Guardar el usuario en la base de datos si no existe
         with Session(engine) as session:
-            session.add(new_user)
-            session.commit()
-            session.refresh(new_user)
+            exist=session.exec(
+                select(Usuario).where(Usuario.nombre.ilike(f"%{new_user.nombre}%"))
+            ).first()
+            if exist:
+                return {"message": "El usuario ya existe", "user_id": str(exist.id),"user_name": str(exist.nombre),"user_enterprise": str(exist.empresa),"user_email": str(exist.email)}
+            else:
+                session.add(new_user)
+                session.commit()
+                session.refresh(new_user)
+            
 
         # Devolver respuesta
-        return {"message": "Usuario creado exitosamente", "user_name": str(new_user.nombre)}
+        return {"message": "Usuario creado exitosamente", "user_id": str(new_user.id)}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear el usuario: {str(e)}")
 
+@app.get('/get_data')
+def get_data():
+    try:
+        with Session(engine) as session:
+            # Select all products
+            productos = session.exec(select(Producto)).all()
+            
+            # Serialize the product objects
+            productos_serializados = [
+                {
+                    "nombre": producto.nombre,
+                    "precio": producto.precio,
+                    "cantidad_en_almacen": producto.cantidad_en_almacen,
+                    "descuento_por_devolucion": producto.descuento_por_devolucion
+                }
+                for producto in productos
+            ]
+            
+            # Return the data as a dictionary
+            return {"data": productos_serializados}
+    except Exception as e:
+        # Return an error message with status code 500
+        return {"error": f"Error al obtener los datos: {str(e)}"}, 500
 
 
 
