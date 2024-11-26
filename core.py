@@ -1,5 +1,7 @@
 from swarm import Swarm, Agent
 from swarm.core import Result
+from sqlalchemy import func
+
 
 from openai import OpenAI
 
@@ -37,7 +39,7 @@ def talk_to_deleter():
 
 
 def talk_to_adder():
-    """Use this function when the user's request involves adding a new product to the database.
+    """Use this function when the user's request involves adding, inserting, or creating a new product to the database.
     Directly transfers the user and their request to the Data Adding Agent, so the user doesn't need to repeat their request, bypassing any additional input steps.
     """
     return Result(
@@ -56,7 +58,7 @@ def talk_to_triage_agent():
 
 
 def talk_to_updater():
-    """Use this function when the user's request involves updating a product in the database.
+    """Use this function when the user's request involves updating, changing, or editing a product in the database.
     Directly transfers the user and their request to the Data Updating Agent, so the user doesn't need to repeat their request, bypassing any additional input steps.
     """
     return Result(
@@ -110,7 +112,7 @@ def get_all_products(filter: Optional[str]) -> Union[List[Dict], str]:
             productos = session.exec(select(Producto)).all()
         else:
             productos = session.exec(
-                select(Producto).where(Producto.nombre.ilike(f"%{filter}%"))
+                select(Producto).where(Producto.nombre.ilike(f"%{filter.lower()}%"))
             ).all()
         if productos:
             return [
@@ -207,13 +209,17 @@ agent_adder = Agent(
     name="Agent Adder",
     model="gpt-4o",
     instructions="""
-    You are a helpful agent whose mission is to add products to the database. 
+    You are a helpful agent whose mission is to insert, create, and add products to the database. 
     Your task is to use the function 'insert_a_product' to add products.
-    If you cannot resolve a user's request, transfer the user to the Triage Agent with you function talk_to_triage_agent .
 
+    Before adding a product, you must first check if the product name already exists in the database using the function 'get_all_products' with a filter on the product name.
+    - Convert all product parameters to lowercase before checking their existence and before inserting them into the database.
+    - If the product name already exists, inform the user and ask them to provide a different name.
+    - If the product name does not exist, proceed to add the product using the 'insert_a_product' function.
 
+    If you cannot resolve a user's request, transfer the user to the Triage Agent with the function 'talk_to_triage_agent'.
     """,
-    functions=[insert_a_product, user_info, talk_to_triage_agent],
+    functions=[insert_a_product, get_all_products, user_info, talk_to_triage_agent],
 )
 
 
@@ -238,7 +244,7 @@ def delete_a_product(nombre: str):
     """
     with Session(engine) as session:
         producto = session.exec(
-            select(Producto).where(Producto.nombre == nombre)
+            select(Producto).where(func.lower(Producto.nombre) == nombre.lower())
         ).first()
         if producto:
             session.delete(producto)
@@ -292,7 +298,7 @@ def update_a_product(
     """
     with Session(engine) as session:
         producto = session.exec(
-            select(Producto).where(Producto.nombre == nombre)
+            select(Producto).where(func.lower(Producto.nombre) == nombre.lower())
         ).first()
 
         if not producto:
@@ -319,9 +325,10 @@ agent_updater = Agent(
     name="Agent Updater",
     model="gpt-4",
     instructions="""
-    You are a professional Product Update Agent whose mission is to safely modify existing products in the database.
+    You are a professional Product Update Agent whose mission is to safely update, change, or edit existing products in the database.
     Your primary function is to use 'update_a_product' to make changes to product details while ensuring data integrity.
-    
+    Respond to all user interactions in Spanish.
+
     Detailed Workflow:
     1. Initial Product Verification:
        - First, use 'get_all_products' with the product name as a filter to verify the product exists
@@ -349,12 +356,16 @@ agent_updater = Agent(
     
     4. Confirmation Request:
        Ask for explicit confirmation:
-       "Please confirm these changes by typing 'YES'. Type 'NO' or anything else to cancel."
+       "Please confirm these changes by typing 'SI'. Type 'NO' or anything else to cancel."
     
     5. Update Execution:
-       - If user types 'YES': Execute update_a_product with the new values
+       - Ensure all values are converted to lowercase before executing the update.
+       - If user types 'SI': Execute update_a_product with the new values
        - If user responds with anything else: Cancel the operation
-    
+
+    6. Name Change Caution:
+       - If the user wants to edit the product name, be very careful to avoid creating a new product, just update the existing one.
+       
     Important Guidelines:
     - NEVER create new products - this agent is for updates only
     - Always verify the product exists before proceeding
