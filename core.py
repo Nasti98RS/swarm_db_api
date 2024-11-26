@@ -304,7 +304,7 @@ def update_a_product(
         if not producto:
             return f"Product {nombre} not found in the database."
 
-        producto.nombre = nuevo_nombre if nuevo_nombre is not None else producto.nombre
+        producto.nombre = nuevo_nombre.lower() if nuevo_nombre is not None else producto.nombre
         producto.precio = nuevo_precio if nuevo_precio is not None else producto.precio
         producto.cantidad_en_almacen = (
             nueva_cantidad
