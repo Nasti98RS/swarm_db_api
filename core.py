@@ -1,22 +1,24 @@
 from swarm import Swarm, Agent
 from swarm.core import Result
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
+from anthropic import Anthropic
 
 
 from openai import OpenAI
 
 from dotenv import load_dotenv
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Tuple
 import os
 from sqlmodel import Session, select
 
 from project.database import engine
-from project.models import Producto
+from project.models import Producto, Usuario
 from project.core_utils import run_demo_loop, process_and_print_streaming_response
 
 load_dotenv()
 
-
+anthropic_client = Anthropic(api_key=os.environ["BTECH_ANTHROPIC_API_KEY"])
 client = Swarm(client=OpenAI(api_key=os.environ["BTECH_OPENAI_API_KEY"]))
 
 
@@ -27,6 +29,20 @@ def talk_to_lister():
     return Result(
         agent=agent_lister,
     )
+
+
+def talk_to_analyzer(user_request: str):
+    """
+    Use this function when the user's request involves analyzing or performing operations on data from the database.
+    Directly transfers the user and their request to the Data Analysis Agent, so the user doesn't need to repeat their request, bypassing any additional input steps.
+
+    Args:
+        user_request (str): The user's original request to analyze or query the data.
+
+    Returns:
+        Result: Transfers the user and their request to the Data Analysis Agent.
+    """
+    return Result(agent=agent_analyzer, request=user_request)
 
 
 def talk_to_deleter():
@@ -73,21 +89,144 @@ def user_info(context_variables):
     user_id = context_variables["user_id"]
     user_name = context_variables["user_name"]
     enterprise_name = context_variables["enterprise_name"]
+    user_email = context_variables["user_email"]
+
     return Result(
-        value=f"Help the user, {user_name} from {enterprise_name} Company, do whatever they want.The user_id is {user_id}"
+        value=f"Help the user, {user_name} from {enterprise_name} Company, do whatever they want.The user_id is {user_id} and the user_email is {user_email}."
     )
 
 
 triage_agent = Agent(
     name="Triage Agent",
-    instructions="Determine which agent is best suited to handle the user's request, and transfer the conversation to that agent, including the user's request so it can be handled directly.",
+    instructions="""
+    Your mission is to determine which agent is best suited to handle the user's request and transfer the conversation directly to that agent, 
+    including the user's request so it can be handled seamlessly without requiring the user to repeat it.
+
+    When deciding which agent to transfer to:
+    1. Analyze the user's request and match it with the appropriate agent's domain (e.g., listing, adding, deleting, updating, or analyzing data).
+    2. Use the corresponding transfer function (e.g., talk_to_lister, talk_to_adder) and include the user's request in the call.
+    3. Ensure the transfer is smooth, providing the necessary context for the receiving agent.
+    """,
     functions=[
-        talk_to_lister,
+        # lambda user_request: talk_to_lister(user_request),
         talk_to_adder,
         talk_to_deleter,
         talk_to_updater,
+        talk_to_analyzer,
         user_info,
     ],
+)
+
+
+def get_full_database() -> Union[Tuple[List[Dict], List[Dict]], str]:
+    """
+    Retrieves all tables from the database to provide context.
+
+    Returns:
+        Union[Tuple[List[Dict], List[Dict]], str]: If data is found, returns a tuple containing two lists:
+            - List[Dict]: A list of dictionaries with product details:
+                - nombre (str): Product name
+                - precio (float): Product price
+                - cantidad_en_almacen (int): Quantity in stock
+                - descuento_por_devolucion (float): Return discount
+            - List[Dict]: A list of dictionaries with user details:
+                - nombre_usuario (str): User name
+                - empresa (str): Company
+                - email (str): Email address
+        If no data is found in either table, returns the string "No data found in the database."
+        Handles database errors gracefully by returning an error message.
+    """
+    try:
+        with Session(engine) as session:
+            # Retrieve products and users from the database
+            productos = session.exec(select(Producto)).all()
+            usuarios = session.exec(select(Usuario)).all()
+
+            # Transform products into JSON format
+            productos_json = (
+                [
+                    {
+                        "nombre": p.nombre,
+                        "precio": p.precio,
+                        "cantidad_en_almacen": p.cantidad_en_almacen,
+                        "descuento_por_devolucion": p.descuento_por_devolucion,
+                    }
+                    for p in productos
+                ]
+                if productos
+                else []
+            )
+
+            # Transform users into JSON format
+            usuarios_json = (
+                [
+                    {
+                        "nombre_usuario": u.nombre_usuario,
+                        "empresa": u.empresa,
+                        "email": u.email,
+                    }
+                    for u in usuarios
+                ]
+                if usuarios
+                else []
+            )
+
+            # Check if both datasets are empty
+            if not productos_json and not usuarios_json:
+                return "No data found in the database."
+
+            return productos_json, usuarios_json
+
+    except SQLAlchemyError as e:
+        # Handle database errors
+        return f"An error occurred while accessing the database: {str(e)}"
+
+
+def get_tokens_count() -> Union[List[Dict], str]:
+    data=get_full_database()
+    response = anthropic_client.beta.messages.count_tokens(
+        betas=["token-counting-2024-11-01"],
+        model="claude-3-5-sonnet-20241022",
+        messages=[{"role": "user", "content": f"{data}"}],
+    )
+    return response.model_dump().get('input_tokens')
+
+
+agent_analyzer = Agent(
+    name="Agent Analyzer",
+    model="gpt-4o",
+    instructions="""
+    You are an advanced analytical agent whose mission is to retrieve all data from the database using the 'get_full_database' function 
+    and assist the user with data analysis tasks.
+
+    Before retrieving the data:
+    1. Call the 'get_tokens_count' function to calculate the number of tokens required to load the entire database.
+    2. Inform the user of the token count and cost in a single, concise message like:
+        "Loading the entire database will require {x} tokens ${x}x 0.0000025 at current pricing of gpt-4o. Would you like to proceed?"
+    3. If the user agrees, proceed to load the database using the 'get_full_database' function.
+    4. If the user declines, transfer them to the Triage Agent using the 'talk_to_triage_agent' function.
+
+    Your capabilities include:
+    - Displaying all data retrieved from the database in a clear and structured format.
+    - Answering logical questions or performing operations on the data, such as:
+        - Filtering by specific fields (e.g., price, quantity, user information).
+        - Sorting the data by any numeric or alphabetical field.
+        - Calculating statistical summaries (e.g., average price, total quantity in stock).
+        - Comparing entries (e.g., finding the highest or lowest values).
+        - Handling specific queries like "Which product has the highest discount?" or "Show all users from a specific company."
+
+    Instructions for interaction:
+    - If the user provides a specific query or request for analysis, process it immediately without unnecessary questions.
+    - If the user wants to see all data, confirm first if they would like it filtered by any criteria or if they want a complete unfiltered dataset.
+    - Provide summaries or insights in a concise, readable format, including charts or tables if appropriate.
+    - If there are many entries, group or paginate the results for readability.
+
+    When no data is available:
+    - Inform the user clearly that the database is empty.
+
+    If you cannot resolve a user's request or if they choose not to load the database, transfer the user to the Triage Agent using the 'talk_to_triage_agent' function.
+    """,
+    functions=[get_tokens_count, get_full_database, user_info, talk_to_triage_agent],
 )
 
 
@@ -304,7 +443,9 @@ def update_a_product(
         if not producto:
             return f"Product {nombre} not found in the database."
 
-        producto.nombre = nuevo_nombre.lower() if nuevo_nombre is not None else producto.nombre
+        producto.nombre = (
+            nuevo_nombre.lower() if nuevo_nombre is not None else producto.nombre
+        )
         producto.precio = nuevo_precio if nuevo_precio is not None else producto.precio
         producto.cantidad_en_almacen = (
             nueva_cantidad
@@ -385,16 +526,20 @@ agent_updater = Agent(
     functions=[update_a_product, get_all_products, user_info, talk_to_triage_agent],
 )
 
-# run_demo_loop(
-#     client,
-#     triage_agent,
-#     stream=True,
-#     context_variables={
-#         "user_id":"1",
-#         "user_name": "Reynaldo",
-#         "enterprise_name": "Mi Empresa",
-#     },
-# )
+
+
+
+
+run_demo_loop(
+    client,
+    triage_agent,
+    stream=True,
+    context_variables={
+        "user_id": "1",
+        "user_name": "Reynaldo",
+        "enterprise_name": "Mi Empresa",
+    },
+)
 
 
 # response = client.run(

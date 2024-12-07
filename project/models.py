@@ -14,6 +14,6 @@ class Producto(SQLModel, table=True):
 
 class Usuario(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    nombre: str = Field()
+    nombre_usuario: str = Field()
     empresa: Optional[str] = Field(default=None)
     email: Optional[str] = Field(default=None)
