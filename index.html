@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swarm-DB Chat</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1041/1041916.png">
-    <script src="/js/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.18/marked.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 
     <style>
@@ -103,29 +101,10 @@
             align-self: flex-end;
             background: #dcf8c6;
         }
+
         .message-content {
-    color: black;
-    font-family: Arial, sans-serif;
-    overflow-wrap: break-word;
-}
-
-.message-content table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-
-.message-content th,
-.message-content td {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-.message-content th {
-    background-color: #128c7e;
-    color: white;
-}
-
+            word-wrap: break-word;
+        }
 
         .typing-indicator {
             display: none;
@@ -639,25 +618,16 @@ function scrollToBottom() {
 function displayMessage(content, sender) {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${sender}`;
-
+    
     const contentElement = document.createElement('div');
     contentElement.className = 'message-content';
-
-    if (sender === 'bot') {
-        // Convierte Markdown a HTML usando `marked`
-        contentElement.innerHTML = marked(content);
-    } else {
-        // Muestra texto plano para el usuario
-        contentElement.textContent = content;
-    }
-
+    contentElement.textContent = content;
+    
     messageElement.appendChild(contentElement);
     chatMessages.appendChild(messageElement);
-
-    scrollToBottom();
+    
+    scrollToBottom(); // Mueve el chat al final
 }
-
-
 
 async function restartConversation() {
     // Verificar si el usuario está logueado
