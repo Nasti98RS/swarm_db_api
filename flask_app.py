@@ -161,15 +161,15 @@ def create_user():
             return jsonify({"error": "El campo nombre es obligatorio"}), 400
 
         # Crear el objeto usuario
-        new_user = Usuario(nombre=nombre, empresa=empresa, email=email)
+        new_user = Usuario(nombre_usuario=nombre, empresa=empresa, email=email)
 
         # Guardar el usuario en la base de datos si no existe
         with Session(engine) as session:
             exist=session.exec(
-                select(Usuario).where(Usuario.nombre.ilike(f"%{new_user.nombre}%"))
+                select(Usuario).where(Usuario.nombre_usuario.ilike(f"%{new_user.nombre_usuario}%"))
             ).first()
             if exist:
-                return jsonify({"message": "El usuario ya existe", "user_id": str(exist.id),"user_name": str(exist.nombre),"user_enterprise": str(exist.empresa),"user_email": str(exist.email)},), 201
+                return jsonify({"message": "El usuario ya existe", "user_id": str(exist.id),"user_name": str(exist.nombre_usuario),"user_enterprise": str(exist.empresa),"user_email": str(exist.email)},), 201
             else:
                 session.add(new_user)
                 session.commit()

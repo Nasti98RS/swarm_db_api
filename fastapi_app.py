@@ -132,15 +132,15 @@ async def home():
 def create_user(user: UsuarioCreate):
     try:
         # Crear el objeto usuario
-        new_user = Usuario(nombre=user.name, empresa=user.company, email=user.email)
+        new_user = Usuario(nombre_usuario=user.name, empresa=user.company, email=user.email)
 
         # Guardar el usuario en la base de datos si no existe
         with Session(engine) as session:
             exist=session.exec(
-                select(Usuario).where(Usuario.nombre.ilike(f"%{new_user.nombre}%"))
+                select(Usuario).where(Usuario.nombre_usuario.ilike(f"%{new_user.nombre_usuario}%"))
             ).first()
             if exist:
-                return {"message": "El usuario ya existe", "user_id": str(exist.id),"user_name": str(exist.nombre),"user_enterprise": str(exist.empresa),"user_email": str(exist.email)}
+                return {"message": "El usuario ya existe", "user_id": str(exist.id),"user_name": str(exist.nombre_usuario),"user_enterprise": str(exist.empresa),"user_email": str(exist.email)}
             else:
                 session.add(new_user)
                 session.commit()

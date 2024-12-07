@@ -530,16 +530,16 @@ agent_updater = Agent(
 
 
 
-run_demo_loop(
-    client,
-    triage_agent,
-    stream=True,
-    context_variables={
-        "user_id": "1",
-        "user_name": "Reynaldo",
-        "enterprise_name": "Mi Empresa",
-    },
-)
+# run_demo_loop(
+#     client,
+#     triage_agent,
+#     stream=True,
+#     context_variables={
+#         "user_id": "1",
+#         "user_name": "Reynaldo",
+#         "enterprise_name": "Mi Empresa",
+#     },
+# )
 
 
 # response = client.run(
