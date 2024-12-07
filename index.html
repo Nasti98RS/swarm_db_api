@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swarm-DB Chat</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1041/1041916.png">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="js/marked.min.js"></script>
 
 
     <style>
@@ -101,25 +101,29 @@
             align-self: flex-end;
             background: #dcf8c6;
         }
-        .message-content table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 10px 0;
-        }
-
-        .message-content th, .message-content td {
-            border: 1px solid #ddd;
-            padding: 8px;
-        }
-
-        .message-content th {
-            background-color: #128c7e;
-            color: white;
-        }
-
         .message-content {
-            word-wrap: break-word;
-        }
+    color: black;
+    font-family: Arial, sans-serif;
+    overflow-wrap: break-word;
+}
+
+.message-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.message-content th,
+.message-content td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.message-content th {
+    background-color: #128c7e;
+    color: white;
+}
+
 
         .typing-indicator {
             display: none;
@@ -637,18 +641,20 @@ function displayMessage(content, sender) {
     const contentElement = document.createElement('div');
     contentElement.className = 'message-content';
 
-    // Convierte el contenido de Markdown a HTML si es del bot
     if (sender === 'bot') {
-        contentElement.innerHTML = marked(content); // Usa `marked` para procesar Markdown
+        // Convierte Markdown a HTML usando `marked`
+        contentElement.innerHTML = marked(content);
     } else {
-        contentElement.textContent = content; // Texto plano para mensajes del usuario
+        // Muestra texto plano para el usuario
+        contentElement.textContent = content;
     }
 
     messageElement.appendChild(contentElement);
     chatMessages.appendChild(messageElement);
 
-    scrollToBottom(); // Mueve el chat al final
+    scrollToBottom();
 }
+
 
 
 async function restartConversation() {
