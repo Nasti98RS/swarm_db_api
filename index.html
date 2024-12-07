@@ -618,14 +618,22 @@ function scrollToBottom() {
 function displayMessage(content, sender) {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${sender}`;
-    
+
     const contentElement = document.createElement('div');
     contentElement.className = 'message-content';
-    contentElement.textContent = content;
-    
+
+    // Verificar si el contenido es Markdown
+    if (sender === 'bot' && content.trim().startsWith('#')) {
+        // Renderiza el contenido Markdown como HTML
+        contentElement.innerHTML = marked(content);
+    } else {
+        // Si no es Markdown, muestra el texto directamente
+        contentElement.textContent = content;
+    }
+
     messageElement.appendChild(contentElement);
     chatMessages.appendChild(messageElement);
-    
+
     scrollToBottom(); // Mueve el chat al final
 }
 
